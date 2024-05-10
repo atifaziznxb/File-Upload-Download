@@ -1,0 +1,212 @@
+﻿
+@{
+    ViewBag.Title = "UploadFile";
+
+    //var bundle = System.Web.Optimization.BundleTable.Bundles.GetRegisteredBundles().Where(b => b.Path == "~/widgetspecific").First();
+
+    //bundle.Include("~/Content/plupload/plupload-full-min.js");
+    
+    
+
+    int tempFileLength = 0;
+    string[] fileEntries = new string[] { };
+    var uploadPath = Server.MapPath("~/Uploads/Temp/");
+    if (Directory.Exists(uploadPath))
+    {
+        fileEntries = Directory.GetFiles(uploadPath);
+        if (fileEntries.Length > 0)
+        {
+            tempFileLength = fileEntries.Length;
+        }
+    }
+}
+
+<div id="AttDiv">
+
+    <div class="upload-box">
+        <div class="col3">&nbsp;</div>
+        <div id="cont" class="col8" style="text-align: right">
+            <input id="pickfiles" type="button" value="Select a File" style="text-align:center">
+            <input id="uploadfiles" type="button" value="Upload File" style="text-align:center">
+
+            <a href="/Attachment/Download/1" title="Download" style="color: green"><i>&#xf019;</i>Download</a>
+        </div>
+        <div class="clear"></div>
+
+        <div class="col3">&nbsp;</div>
+        <div class="col8">
+            <div id="filelist">
+                @{
+                    {
+
+                        //if (Directory.Exists(uploadPath))
+                        //{
+                        //    string[] fileEntries = Directory.GetFiles(uploadPath);
+                        foreach (string fileName in fileEntries)
+                        {
+                            @*double fileSize = new FileInfo(fileName).Length;
+                                        fileSize = ((fileSize / 1024) / 1024);
+                                <div class="row uploaded">
+                                    @fileName.Split('\\').Last()
+                                    (@String.Format("{0:0.#} mb", fileSize))
+                                    100% <a class="del last" id="del" href="javascript:void(0)" key="@fileName.Split('\\').Last()" title="Delete"><i>&#xf00d;</i></a>
+                                </div>*@
+                            if (Directory.Exists(Path.GetDirectoryName(fileName)))
+                            {
+                                if (System.IO.File.Exists(fileName))
+                                {
+                                    System.IO.File.Delete(fileName);
+                                }
+                            }
+
+                        }
+                        //}
+                    }
+                }
+            </div>
+        </div>
+
+        <div id="error-console">
+            @*<div class="row"></div>*@
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jquery")
+    @Scripts.Render("~/bundles/jqueryval")
+    
+}
+<script src="~/Scripts/plupload/plupload-full-min.js"></script>
+<script src="~/Scripts/jquery-1.10.2.min.js"></script>
+
+
+
+<script type="text/javascript">
+
+    var Consumer = 0;
+    // Delete file by ajax
+    //$(".delete").on('click',null, function (e) {
+    //    comAjax($(this).attr('href'), null, $(this).parent().parent(), "RemoveElement", null);
+    //    return false;
+    //});
+
+    if ('@tempFileLength' > 0) {
+        $('#pickfiles').hide();
+        //$('#uploadfiles').hide();
+    }
+
+    $("#pickfiles").click(function () {
+        $("#error-console").html("");
+        $("#error-console").hide();
+    });
+
+
+    @*$("body").on('click', '.del', function (e) {
+
+        var name = $(this).attr('key');
+        var divName = "#" + $(this).parent().attr('id');
+        $.ajax({
+            type: 'GET',
+            url: '/Attachment/DeleteLinkedFile?Parent=Consumer/Consumer Documents&ParentID=@Model.VMConsumer.ConsumerID&Name=' + name,
+            contentType: "application/html; charset=utf-8",
+            dataType: 'html',
+            success: function (response) {
+                if (response == 1) {
+                    //$('#del').parent().re4move();
+                    $(divName).remove();
+                    $('#pickfiles').show();
+                }
+                else {
+                }
+            }
+        });
+
+        });*@
+
+    var clickWhat;
+
+    // Plupload script
+
+    var uploader = new plupload.Uploader({
+        runtimes: 'html5,flash,silverlight,html4',
+        browse_button: 'pickfiles', // you can pass in id...
+        container: document.getElementById('cont'), // ... or DOM Element itself
+        url: '/Attachment/UploadInChunks?Parent=Consumer/Consumer Documents&ParentID=1',
+        flash_swf_url: '~/Scripts/plupload/Moxie.swf',
+        silverlight_xap_url: '~/Scripts/plupload/Moxie.xap',
+        unique_names: false,
+        chunk_size: "1mb",
+        multi_selection: false,
+        filters: {
+            max_file_size : '20mb',
+            mime_types: [
+            { title: "Document files", extensions: "pdf" },
+            { title: "Image files", extensions: "jpg,png,jpeg,gif" }
+            ]
+    },
+
+        init: {
+            StateChanged: function (up) {
+                if (up.state == plupload.STOPPED) {
+                    if (clickWhat == "SubmitBtn") {
+                        $('#With-Attachment').submit();
+                    }
+                }
+
+            },
+            PostInit: function () {
+                // When user submit form
+                $("#Submit-With-Attachment").click(function () {
+                    clickWhat = "SubmitBtn";
+                    uploader.start();
+                    return false;
+                });
+
+            },
+
+            FilesAdded: function (up, files) {
+                plupload.each(files, function (file) {
+                    document.getElementById('filelist').innerHTML += '<div id="' + file.id + '" class="row">' + file.name + ' (' + plupload.formatSize(file.size) + ') <b></b>      <a class="del last" id="del" href="javascript:void(0)" key=' + file.name + ' title="Delete"><i>&#xf00d;</i></a></div>';
+                    $('#pickfiles').hide();
+                });
+            },
+
+            UploadProgress: function (up, file) {
+                var PRemaining = 100 - file.percent;
+
+                document.getElementById(file.id).getElementsByTagName('b')[0].innerHTML = '<span>' + file.percent + "%</span>";
+                $("#" + file.id).attr('style', 'background:linear-gradient(to left, #FFF ' + PRemaining + '%, #5CB8E5 0%)');
+            },
+
+
+            Error: function (up, err) {
+                $('#error-console').html('<div id="' + err.file.id + '" class="row">' + err.file.name + ' <span style="font-weight:bold">' + err.message + '</span> </div>');
+                $("#error-console").show();
+            }
+        }
+    });
+
+    uploader.bind("BeforeUpload", handleBeforeUpload);
+    uploader.init();
+
+    function handleBeforeUpload(uploader, file) {
+
+        // Get references to the runtime settings and multipart form parameters.
+        var settings = uploader.settings;
+        var params = settings.multipart_params;
+    }
+
+    document.getElementById('uploadfiles').onclick = function () {
+        clickWhat = "UploadBtn";
+        uploader.start();
+        return false;
+    };
+
+
+</script>
+
+
+
+
